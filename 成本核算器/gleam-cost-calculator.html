@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gleam Studio · 制作成本核算器</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh;padding:24px 16px}
+.wrap{max-width:820px;margin:0 auto}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.hd-title{font-size:20px;font-weight:500}
+.hd-sub{font-size:12px;color:#888;margin-top:2px}
+.hd-badges{display:flex;gap:6px;flex-wrap:wrap}
+.tabs{display:flex;border-bottom:1px solid #e5e5e5;margin-bottom:20px}
+.tab{padding:9px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500}
+.tab:hover:not(.active){color:#555}
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:20px;margin-bottom:14px}
+.stitle{font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:600px){.g3{grid-template-columns:1fr 1fr}.g4{grid-template-columns:1fr 1fr}}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;color:#888}
+.fld input,.fld select{padding:7px 10px;font-size:13px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa;color:#1a1a1a;width:100%;transition:border-color .15s}
+.fld input:focus,.fld select:focus{outline:none;border-color:#999;background:#fff}
+.si{padding:5px 7px;font-size:12px;border:1px solid #e0e0e0;border-radius:6px;background:#fafafa;color:#1a1a1a;width:100%}
+.si:focus{outline:none;border-color:#999;background:#fff}
+.mc{background:#f7f7f5;border-radius:8px;padding:14px;text-align:center}
+.ml{font-size:11px;color:#aaa;margin-bottom:4px}
+.mv{font-size:20px;font-weight:500;color:#1a1a1a}
+.mv.ok{color:#3B6D11}.mv.warn{color:#854F0B}.mv.bad{color:#A32D2D}
+.ms{font-size:11px;color:#999;margin-top:2px}
+.trow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0}
+.trow:last-child{border-bottom:none}
+.trow .lb{color:#888}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+.b-blue{background:#E6F1FB;color:#185FA5}
+.b-amber{background:#FAEEDA;color:#854F0B}
+.b-green{background:#EAF3DE;color:#3B6D11}
+.b-red{background:#FCEBEB;color:#A32D2D}
+.b-gray{background:#f0f0ee;color:#666;border:1px solid #e5e5e5}
+.divider{height:1px;background:#f0f0f0;margin:12px 0}
+.tag{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border-radius:20px;cursor:pointer;border:1px solid #e0e0e0;color:#888;background:none;margin:2px}
+.tag.on{background:#1a1a1a;color:#fff;border-color:transparent}
+.pg{display:none}.pg.active{display:block}
+.delbtn{width:24px;height:24px;border:none;background:none;cursor:pointer;color:#ccc;font-size:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.delbtn:hover{background:#fff0f0;color:#c00}
+.addbtn{padding:6px 14px;font-size:12px;cursor:pointer;border:1px dashed #ccc;border-radius:8px;background:none;color:#999}
+.addbtn:hover{background:#fafafa}
+.cbtn{width:100%;padding:11px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:500;margin-top:8px}
+.cbtn:hover{background:#333}
+.plat-row{display:grid;grid-template-columns:1fr 100px 60px 28px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0}
+.plat-row:last-child{border-bottom:none}
+.plat-hdr{display:grid;grid-template-columns:1fr 100px 60px 28px;gap:8px;padding:0 0 6px;border-bottom:1px solid #e8e8e8;margin-bottom:4px}
+.res-row{display:grid;grid-template-columns:1.5fr 55px 1fr 55px 28px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0}
+.res-row:last-child{border-bottom:none}
+.res-hdr{display:grid;grid-template-columns:1.5fr 55px 1fr 55px 28px;gap:8px;padding:0 0 6px;border-bottom:1px solid #e8e8e8;margin-bottom:4px}
+.tpl-row{display:flex;flex-direction:column;gap:8px;border-top:1px solid #eee;padding-top:12px;margin-top:8px}
+.tpl-row.card-active .tpl-card{background:#fff;border-color:#999}
+.tpl-card{background:#fafafa;border-radius:10px;padding:14px;border:1px solid #e8e8e8;cursor:pointer;transition:border-color .15s}
+.tpl-card:hover{border-color:#ccc}
+.tpl-head{display:flex;justify-content:space-between;align-items:center}
+.tpl-nm{font-size:13px;font-weight:500}
+.tpl-badges{display:flex;gap:6px}
+.tpl-body{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #e0e0e0}
+.tpl-body.active{display:block}
+.tpl-roles{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.tpl-roles .tr{display:flex;align-items:center;gap:6px}
+.tpl-roles .tr input{width:100%}
+.tpl-roles .tr .t-rat{width:70px}
+.tpl-roles .tr .t-del{width:24px;height:24px;border:none;background:none;cursor:pointer;color:#ccc;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.tpl-roles .tr .t-del:hover{color:#c00;background:#fff0f0}
+.tpl-roles .tr .t-inp{flex:1}
+.save-hint{font-size:11px;color:#bbb}
+table{border-collapse:collapse}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hd">
+  <div>
+    <div class="hd-title">制作成本核算器</div>
+    <div class="hd-sub">Gleam Studio · AI短剧</div>
+  </div>
+  <div class="hd-badges">
+    <span class="badge b-gray" id="hd-projs">项目 —</span>
+    <span class="badge b-amber" id="hd-cost">总成本 —</span>
+    <span class="badge b-green" id="hd-res">资源池 —</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="goTab('global')">全局配置</button>
+  <button class="tab" onclick="goTab('projects')">项目管理</button>
+  <button class="tab" onclick="goTab('pool')">资源池</button>
+  <button class="tab" onclick="goTab('curve')">成本曲线</button>
+</div>
+
+<!-- 全局配置 -->
+<div class="pg active" id="tab-global">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="stitle" style="margin:0">AI 积分平台</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="addbtn" onclick="addPlatform()">+ 新增平台</button>
+        <span class="save-hint" id="plat-hint">已自动保存</span>
+      </div>
+    </div>
+    <div class="plat-hdr">
+      <span style="font-size:10px;color:#aaa">平台名称</span>
+      <span style="font-size:10px;color:#aaa;text-align:center">1元兑积分数</span>
+      <span style="font-size:10px;color:#aaa;text-align:center">启用</span>
+      <span></span>
+    </div>
+    <div id="plat-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="stitle">分镜积分配置</div>
+    <div class="g3">
+      <div class="fld"><label>生成速率（积分/s）</label><input id="ai-rate" type="number" value="5" step="0.5" oninput="saveGlobal()"/></div>
+      <div class="fld"><label>每集生成时长（s）</label><input id="ai-dur" type="number" value="120" oninput="saveGlobal()"/></div>
+      <div class="fld"><label style="color:#bbb">每集积分消耗（自动计算）</label>
+        <div style="padding:7px 10px;font-size:13px;font-weight:500;background:#f7f7f5;border-radius:8px;border:1px solid #e8e8e8" id="pts-auto">600 积分/集</div>
+      </div>
+    </div>
+    <div class="g2" style="margin-top:10px">
+      <div class="fld"><label>图像积分/张</label><input id="ai-imgpts" type="number" value="10" oninput="saveGlobal()"/></div>
+      <div class="fld"><label>每集图像数量（张）</label><input id="ai-imgn" type="number" value="80" oninput="saveGlobal()"/></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="stitle" style="margin:0">人员资源池（公司标准工时）</div>
+      <button class="addbtn" onclick="addRole()">+ 新增岗位</button>
+    </div>
+    <!-- 人员资源池表格：移除每集工时列，保留5列 -->
+    <div class="res-hdr">
+      <span style="font-size:10px;color:#aaa">岗位名称</span>
+      <span style="font-size:10px;color:#aaa;text-align:center">人数</span>
+      <span style="font-size:10px;color:#aaa;text-align:center">月薪（元）</span>
+      <span style="font-size:10px;color:#aaa;text-align:center">日工时(h)</span>
+      <span></span>
+    </div>
+    <div id="res-list"></div>
+    <!-- 底部说明文字更新 -->
+    <div style="margin-top:8px;font-size:12px;color:#999">资源池定义公司人力供给，项目人员编排中按占用比例分配</div>
+    <div class="save-hint" style="margin-top:4px" id="res-hint">已自动保存</div>
+  </div>
+
+  <!-- 制作组模板库 新增 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="stitle" style="margin:0">制作组模板库</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="addbtn" onclick="addTemplate()">+ 新增模板</button>
+        <span class="save-hint" id="tpl-hint">已自动保存</span>
+      </div>
+    </div>
+    <div id="tpl-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="stitle">固定成本（月）</div>
+    <div class="g3">
+      <div class="fld"><label>软件订阅（元）</label><input id="c-soft" type="number" value="2000" oninput="saveGlobal()"/></div>
+      <div class="fld"><label>服务器/云计算（元）</label><input id="c-server" type="number" value="1500" oninput="saveGlobal()"/></div>
+      <div class="fld"><label>其他杂费（元）</label><input id="c-misc" type="number" value="3000" oninput="saveGlobal()"/></div>
+    </div>
+  </div>
+  <button class="cbtn" onclick="saveGlobal(true);goTab('projects')">保存配置，管理项目 →</button>
+</div>
+
+<!-- 项目管理 -->
+<div class="pg" id="tab-projects">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:13px;color:#888">点击项目卡片展开编辑</div>
+    <button class="addbtn" onclick="addProject()">+ 新增项目</button>
+  </div>
+  <div id="proj-list"></div>
+</div>
+
+<!-- 资源池 -->
+<div class="pg" id="tab-pool">
+  <div class="g4" style="margin-bottom:14px" id="pool-metrics"></div>
+  <div class="card">
+    <div class="stitle">岗位资源调度（所有项目汇总）</div>
+    <!-- 说明更新 -->
+    <div style="font-size:12px;color:#999;margin-bottom:10px">
+      供给 = 公司该岗位总人数 | 需求 = 所有项目 staffing 中该岗位 ratio 之和
+    </div>
+    <div id="pool-table"></div>
+  </div>
+  <div class="card">
+    <div class="stitle">人力成本跨项目分摊（按 staffing 占比）</div>
+    <div style="overflow-x:auto" id="pool-split"></div>
+  </div>
+</div>
+
+<!-- 成本曲线 -->
+<div class="pg" id="tab-curve">
+  <div class="fld" style="margin-bottom:14px;max-width:260px">
+    <label>选择分析项目</label>
+    <select id="curve-sel" onchange="drawCurve()"></select>
+  </div>
+  <div class="g4" style="margin-bottom:14px">
+    <div class="mc"><div class="ml">总成本</div><div class="mv" id="cv-total">—</div><div class="ms">全季</div></div>
+    <div class="mc"><div class="ml">单集均摊</div><div class="mv warn" id="cv-perep">—</div><div class="ms">元/集</div></div>
+    <div class="mc"><div class="ml">AI积分占比</div><div class="mv" id="cv-airatio">—</div><div class="ms">分镜+图像</div></div>
+    <div class="mc"><div class="ml">净利润</div><div class="mv" id="cv-profit">—</div><div class="ms">预估</div></div>
+  </div>
+  <div class="card">
+    <div class="stitle">成本构成</div>
+    <div id="cv-breakdown"></div>
+  </div>
+  <!-- 新增：人力 vs AI 成本对比 -->
+  <div class="card">
+    <div class="stitle" style="margin:0">人力 vs AI 成本对比</div>
+    <div style="position:relative;width:100%;height:250px;margin-top:10px">
+      <canvas id="compChart" role="img" aria-label="人力与AI成本对比"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="stitle" style="margin:0">单集成本 vs 集数</div>
+      <div>
+        <span class="tag on" id="tg-tot" onclick="toggleSeries('tot',this)">总/集</span>
+        <span class="tag on" id="tg-ai" onclick="toggleSeries('ai',this)">AI/集</span>
+        <span class="tag on" id="tg-hr" onclick="toggleSeries('hr',this)">人力/集</span>
+        <span class="tag" id="tg-fix" onclick="toggleSeries('fix',this)">固定/集</span>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:250px">
+      <canvas id="curveChart" role="img" aria-label="单集成本随集数变化曲线"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;gap:16px;align-items:center">
+      <div style="position:relative;width:160px;height:160px;flex-shrink:0">
+        <canvas id="pieChart" role="img" aria-label="成本占比饼图"></canvas>
+      </div>
+      <div style="flex:1" id="pie-leg"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<datalist id="roles-dl-tpl"></datalist>
+
+<script>
+var SK = {plat:'gleam_v3_plat', roles:'gleam_v3_roles', global:'gleam_v3_global', proj:'gleam_v3_proj', tpl:'gleam_v3_templates'};
+var seriesVis = {tot:true,ai:true,hr:true,fix:false};
+var curveInst=null, pieInst=null, compInst=null;
+
+var defaultPlatforms = [
+  {name:'即梦 AI',rate:100,active:true},
+  {name:'可灵 AI',rate:66,active:false},
+  {name:'Midjourney',rate:50,active:false},
+  {name:'Runway',rate:40,active:false},
+];
+var defaultRoles = [
+  {name:'编剧',count:1,salary:12000,hrsPerEp:4,dayHrs:8},
+  {name:'导演',count:1,salary:15000,hrsPerEp:3,dayHrs:8},
+  {name:'美术/提示词',count:1,salary:10000,hrsPerEp:2,dayHrs:8},
+  {name:'后期剪辑',count:1,salary:10000,hrsPerEp:2,dayHrs:8},
+  {name:'制片统筹',count:1,salary:12000,hrsPerEp:1,dayHrs:8},
+];
+var defaultTemplates = [
+  {name:"标准BL轻量组",roles:[{roleName:"编剧",ratio:0.5},{roleName:"导演",ratio:1.0},{roleName:"美术/提示词",ratio:1.5},{roleName:"后期剪辑",ratio:1.0}]},
+  {name:"快速登场组",roles:[{roleName:"编剧",ratio:0.2},{roleName:"导演",ratio:0.8},{roleName:"美术/提示词",ratio:0.5},{roleName:"后期剪辑",ratio:0.8}]}
+];
+var defaultProjects = [
+  {name:'Fractured Recall S1',eps:20,days:30,scriptCost:0,staffing:[],
+   revPlat:800,revBrand:50000,revLic:30000,revMerch:10000,revViews:500,revCpm:8,open:false},
+];
+
+function loadJSON(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function saveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+var platforms = loadJSON(SK.plat, defaultPlatforms);
+var roles     = loadJSON(SK.roles, defaultRoles);
+var projects  = loadJSON(SK.proj, defaultProjects);
+var templates = loadJSON(SK.tpl, defaultTemplates);
+
+function loadGlobal(){
+  var g=loadJSON(SK.global,{aiRate:5,aiDur:120,aiImgPts:10,aiImgN:80,cSoft:2000,cServer:1500,cMisc:3000});
+  document.getElementById('ai-rate').value   = g.aiRate||5;
+  document.getElementById('ai-dur').value    = g.aiDur||120;
+  document.getElementById('ai-imgpts').value = g.aiImgPts||10;
+  document.getElementById('ai-imgn').value   = g.aiImgN||80;
+  document.getElementById('c-soft').value    = g.cSoft||2000;
+  document.getElementById('c-server').value  = g.cServer||1500;
+  document.getElementById('c-misc').value    = g.cMisc||3000;
+  updatePtsAuto();
+  renderTemplates();
+}
+
+function saveGlobal(showMsg){
+  var g={aiRate:gv('ai-rate'),aiDur:gv('ai-dur'),aiImgPts:gv('ai-imgpts'),
+         aiImgN:gv('ai-imgn'),cSoft:gv('c-soft'),cServer:gv('c-server'),cMisc:gv('c-misc')};
+  saveJSON(SK.global,g);
+  updatePtsAuto();
+  updateHeader();
+  if(showMsg) hint('res-hint','已保存 ✓');
+}
+
+function updatePtsAuto(){
+  document.getElementById('pts-auto').textContent = Math.round(gv('ai-rate')*gv('ai-dur') + gv('ai-imgpts')*gv('ai-imgn'))+' 积分/集';
+}
+
+function gv(id){return parseFloat(document.getElementById(id).value)||0;}
+
+function fmt(n){
+  n=Math.round(n);
+  if(Math.abs(n)>=10000) return '¥'+(n/10000).toFixed(1)+'万';
+  return '¥'+n.toLocaleString();
+}
+
+function hint(id,msg){
+  var el=document.getElementById(id);
+  if(!el)return;
+  var prev=el.textContent;
+  el.textContent=msg;
+  setTimeout(()=>{el.textContent='已自动保存';},2000);
+}
+
+function getActivePlat(){return platforms.find(p=>p.active)||platforms[0]||{rate:100};}
+
+function calcProjectCost(p){
+  var plat=getActivePlat();
+  var ptsPerEp=gv('ai-rate')*gv('ai-dur') + gv('ai-imgpts')*gv('ai-imgn');
+  var aiCost=plat.rate>0?(ptsPerEp*p.eps)/plat.rate:0;
+  var months=p.days/30;
+  
+  // 新人力成本逻辑
+  var hrCost=0;
+  if (p.staffing && p.staffing.length > 0) {
+    hrCost = p.staffing.reduce((a,s)=>{
+      var r=roles.find(r=>r.name===s.roleName);
+      return a+(r?r.salary*s.ratio:0)*months;
+    }, 0);
+  } else {
+    hrCost = roles.reduce((a,r)=>a+r.count*r.salary*months, 0);
+  }
+
+  var fixCost=(gv('c-soft')+gv('c-server'))*months+gv('c-misc');
+  var scriptCost=p.scriptCost||0;
+  var total=aiCost+hrCost+fixCost+scriptCost;
+  var rev=(p.revPlat||0)*p.eps+(p.revBrand||0)+(p.revLic||0)+(p.revMerch||0)+
+          (p.revViews||0)*10000/1000*(p.revCpm||0);
+  return {aiCost,hrCost,fixCost,scriptCost,total,rev,net:rev-total,months};
+}
+
+/* ---- platforms ---- */
+function renderPlatforms(){
+  document.getElementById('plat-list').innerHTML=platforms.map((p,i)=>`
+    <div class="plat-row">
+      <input class="si" value="${p.name}" oninput="platforms[${i}].name=this.value;savePlat()"/>
+      <input class="si" type="number" value="${p.rate}" style="text-align:center"
+             oninput="platforms[${i}].rate=parseFloat(this.value)||1;savePlat()"/>
+      <div style="text-align:center">
+        <input type="radio" name="platact" ${p.active?'checked':''}
+               onchange="platforms.forEach((x,j)=>x.active=j===${i});savePlat();renderPlatforms()"/>
+      </div>
+      <button class="delbtn" onclick="platforms.splice(${i},1);
+        if(!platforms.some(x=>x.active)&&platforms.length)platforms[0].active=true;
+        savePlat();renderPlatforms()">×</button>
+    </div>`).join('');
+}
+function addPlatform(){platforms.push({name:'新平台',rate:50,active:false});savePlat();renderPlatforms();}
+function savePlat(){saveJSON(SK.plat,platforms);hint('plat-hint','已保存 ✓');updateHeader();}
+
+/* ---- roles ---- */
+function renderRoles(){
+  document.getElementById('res-list').innerHTML=roles.map((r,i)=>`
+    <div class="res-row">
+      <input class="si" value="${r.name}" oninput="roles[${i}].name=this.value;saveRoles()"/>
+      <input class="si" type="number" value="${r.count}" min="0" style="text-align:center"
+             oninput="roles[${i}].count=parseFloat(this.value)||0;saveRoles()"/>
+      <input class="si" type="number" value="${r.salary}"
+             oninput="roles[${i}].salary=parseFloat(this.value)||0;saveRoles()"/>
+      <input class="si" type="number" value="${r.dayHrs}" style="text-align:center"
+             oninput="roles[${i}].dayHrs=parseFloat(this.value)||8;saveRoles()"/>
+      <button class="delbtn" onclick="roles.splice(${i},1);saveRoles();renderRoles()">×</button>
+    </div>`).join('');
+}
+function addRole(){roles.push({name:'新岗位',count:1,salary:8000,hrsPerEp:2,dayHrs:8});saveRoles();renderRoles();}
+function saveRoles(){
+  saveJSON(SK.roles,roles);
+  hint('res-hint','已保存 ✓');
+  var dl=document.getElementById('roles-dl-tpl');
+  if(dl) dl.innerHTML=getRoleOptions();
+}
+
+/* ---- templates ---- */
+function getRoleOptions(){
+  return roles.map(r=>`<option value="${r.name}">${r.name}</option>`).join('');
+}
+function renderTemplates(){
+  var dl = document.getElementById('roles-dl-tpl');
+  if(!dl) return;
+  dl.innerHTML = getRoleOptions();
+
+  document.getElementById('tpl-list').innerHTML=templates.map((t,i)=>`
+    <div class="tpl-row">
+      <div class="tpl-card ${t.open?'card-active':''}" onclick="toggleTpl(${i})">
+        <div class="tpl-head">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="tpl-nm">${t.name}</span>
+            <span class="badge b-gray">${t.roles.length}个岗位</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="color:#bbb;font-size:12px">${t.open?'▲':'▼'}</span>
+            <button class="delbtn" onclick="event.stopPropagation();
+              if(confirm('删除模板「${t.name}」？')){templates.splice(${i},1);saveTemplates();renderTemplates();updateHeader();}">×</button>
+          </div>
+        </div>
+        <div class="tpl-body ${t.open?'active':''}">
+          <div class="fld" style="margin-bottom:10px">
+            <label>模板名称</label>
+            <input class="si" value="${t.name}" oninput="templates[${i}].name=this.value;saveTemplates()"/>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div class="stitle" style="margin:0">岗位配置</div>
+            <button class="addbtn" onclick="event.stopPropagation();addTplRole(${i})">+ 新增条目</button>
+          </div>
+          <div class="tpl-roles">
+            ${t.roles.map((rj,rIdx)=>`
+              <div class="tr">
+                <input class="si t-inp" list="roles-dl-tpl" value="${rj.roleName}"
+                       oninput="templates[${i}].roles[${rIdx}].roleName=this.value"/>
+                <input class="si t-rat" type="number" step="0.1" min="0" value="${rj.ratio}"
+                       oninput="templates[${i}].roles[${rIdx}].ratio=parseFloat(this.value)||0"/>
+                <button class="t-del" onclick="event.stopPropagation();templates[${i}].roles.splice(${rIdx},1);saveTemplates();renderTemplates()">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:8px">
+            <select class="si" id="proj-tpl-sel-${i}" onchange="applyTemplate(${i}, this)">
+              <option value="">选择项目套用</option>
+              ${projects.map((p,pi)=>`<option value="${pi}">${p.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function addTemplate(){
+  templates.push({name:"新模板",roles:[],open:true});
+  saveTemplates();renderTemplates();
+}
+function toggleTpl(i){
+  templates[i].open = !templates[i].open;
+  saveTemplates();
+  renderTemplates();
+}
+function addTplRole(tIdx){
+  if(!templates[tIdx].roles) templates[tIdx].roles = [];
+  templates[tIdx].roles.push({roleName:roles[0]?roles[0].name:'编剧',ratio:1.0});
+  saveTemplates();renderTemplates();
+}
+function saveTemplates(){saveJSON(SK.tpl, templates); hint('tpl-hint','已保存 ✓');}
+
+function applyTemplate(tIdx, sel){
+  var t = templates[tIdx];
+  if (!t || !t.roles || t.roles.length === 0) {
+    alert('模板为空，无法套用');
+    sel.value = '';
+    return;
+  }
+  
+  var projIdx = parseInt(sel.value);
+  if (projIdx === undefined || projIdx === null || projIdx === -1) return;
+
+  var proj = projects[projIdx];
+  if(!proj) { sel.value=''; return; }
+  
+  // Deep copy roles
+  proj.staffing = t.roles.map(r => ({roleName: r.roleName, ratio: r.ratio}));
+  
+  saveProjects();
+  renderProjects();
+  renderPool(); // 更新资源池数据
+  sel.value = ''; // Reset
+}
+
+/* ---- projects ---- */
+function renderProjects(){
+  var html=projects.map((p,i)=>{
+    var c=calcProjectCost(p);
+    var profColor=c.net>=0?'#3B6D11':'#A32D2D';
+    // Staffing UI Logic
+    var staffingHtml = p.staffing && p.staffing.length > 0 ? p.staffing.map((s, sIdx) => {
+      var role = roles.find(r => r.name === s.roleName);
+      var existRole = !!role;
+      var count = existRole ? role.count : '—';
+      var globalRatio = projects.reduce((sum, proj) => {
+        var sFind = proj.staffing && proj.staffing.find(x => x.roleName === s.roleName);
+        return sum + (sFind ? sFind.ratio : 0);
+      }, 0);
+      var ratio; // supply vs demand (demand/supply logic)
+      if (!existRole) {
+        ratio = 99;
+      } else {
+        ratio = globalRatio / count;
+      }
+      var isOver = ratio > 1;
+      var isTight = !isOver && ratio > 0.8;
+      var overText = isOver ? `超载 ${(ratio-1)*100|0}%` : (isTight ? `紧张 ${(ratio*100).toFixed(0)}%` : `充足 ${(ratio*100).toFixed(0)}%`);
+      var colorClass = isOver ? 'b-red' : (isTight ? 'b-amber' : 'b-green');
+      var rowStyle = isOver ? 'background:#fff8f8;' : '';
+      var cntDisplay = existRole ? count : '<span style="color:#854F0B">—</span>';
+
+      return `<div style="display:grid;grid-template-columns:1.5fr 55px 55px 65px 80px 28px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;${rowStyle}">
+        <input class="si" list="roles-dl-tpl" value="${s.roleName}"
+               oninput="projects[${i}].staffing[${sIdx}].roleName=this.value;saveProjects();renderPool();"/>
+        <input class="si" type="number" step="0.1" min="0" value="${s.ratio}"
+               oninput="projects[${i}].staffing[${sIdx}].ratio=parseFloat(this.value)||0;saveProjects();renderPool();"/>
+        <div style="text-align:center;color:${existRole?'#1a1a1a':'#854F0B'}">${cntDisplay}</div>
+        <div style="text-align:center;font-size:12px;color:#888">${globalRatio.toFixed(2)}</div>
+        <div style="text-align:center;font-size:11px"><span class="badge ${colorClass}">${overText}</span></div>
+        <button class="delbtn" onclick="event.stopPropagation();
+          projects[${i}].staffing.splice(${sIdx},1);saveProjects();renderProjects();renderPool();">×</button>
+      </div>`;
+    }).join('')
+      : `<div style="padding:8px 0;color:#aaa;font-size:13px">当前无人员编排，建议从上方套用模板</div>`;
+
+    var expanded=p.open?`
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee">
+        <div class="g3" style="margin-bottom:10px">
+          <div class="fld"><label>项目名称</label>
+            <input class="si" value="${p.name}"
+                   oninput="projects[${i}].name=this.value;saveProjects();renderProjects()"/></div>
+          <div class="fld"><label>总集数</label>
+            <input class="si" type="number" value="${p.eps}" min="1"
+                   oninput="projects[${i}].eps=parseFloat(this.value)||1;saveProjects();renderProjects()"/></div>
+          <div class="fld"><label>制作周期（天）</label>
+            <input class="si" type="number" value="${p.days}" min="1"
+                   oninput="projects[${i}].days=parseFloat(this.value)||1;saveProjects();renderProjects()"/></div>
+        </div>
+        <div class="fld" style="margin-bottom:10px;max-width:220px"><label>脚本外包费用（元）</label>
+          <input class="si" type="number" value="${p.scriptCost||0}"
+                 oninput="projects[${i}].scriptCost=parseFloat(this.value)||0;saveProjects()"/></div>
+        <div class="stitle" style="margin:0">人员编排</div>
+        <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:12px;color:#888">配置每个岗位的人力占用比例</div>
+            <div style="display:flex;gap:6px">
+                <select class="si" id="tpl-select-proj-${i}" style="width:150px">
+                    <option value="">选择模板...</option>
+                    ${templates.map((t,ti)=>`<option value="${ti}">${t.name}</option>`).join('')}
+                </select>
+                <button class="addbtn" onclick="event.stopPropagation();
+                    var sel=document.getElementById('tpl-select-proj-${i}'); 
+                    var tIdx=parseInt(sel.value); 
+                    if(tIdx>=0 && templates[tIdx]) { 
+                        projects[${i}].staffing = templates[tIdx].roles.map(r=>({roleName:r.roleName, ratio:r.ratio})); 
+                        saveProjects(); renderProjects(); renderPool(); 
+                        sel.value=''; 
+                    }">套用</button>
+                <button class="addbtn" onclick="event.stopPropagation();
+                    if(!projects[${i}].staffing) projects[${i}].staffing=[]; 
+                    projects[${i}].staffing.push({roleName:'编剧',ratio:1});
+                    saveProjects(); renderProjects(); renderPool();">+ 新增岗位</button>
+            </div>
+        </div>
+        <div style="margin-bottom:4px">
+            <div style="display:grid;grid-template-columns:1.5fr 55px 55px 65px 80px 28px;gap:8px;padding:0 0 6px;border-bottom:1px solid #e8e8e8;margin-bottom:4px">
+                <span style="font-size:10px;color:#aaa">岗位名称</span>
+                <span style="font-size:10px;color:#aaa;text-align:center">占用比例</span>
+                <span style="font-size:10px;color:#aaa;text-align:center">公司人数</span>
+                <span style="font-size:10px;color:#aaa;text-align:center">全项目占用</span>
+                <span style="font-size:10px;color:#aaa;text-align:center">状态</span>
+                <span></span>
+            </div>
+            ${staffingHtml}
+        </div>
+        <div class="divider"></div>
+        <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">收入预测</div>
+        <div class="g3" style="margin-bottom:10px">
+          <div class="fld"><label>平台分成/集（元）</label>
+            <input class="si" type="number" value="${p.revPlat||0}"
+                   oninput="projects[${i}].revPlat=parseFloat(this.value)||0;saveProjects();renderProjects()"/></div>
+          <div class="fld"><label>品牌植入（元）</label>
+            <input class="si" type="number" value="${p.revBrand||0}"
+                   oninput="projects[${i}].revBrand=parseFloat(this.value)||0;saveProjects();renderProjects()"/></div>
+          <div class="fld"><label>版权/发行（元）</label>
+            <input class="si" type="number" value="${p.revLic||0}"
+                   oninput="projects[${i}].revLic=parseFloat(this.value)||0;saveProjects();renderProjects()"/></div>
+        </div>
+        <div class="g3">
+          <div class="fld"><label>IP衍生品（元）</label>
+            <input class="si" type="number" value="${p.revMerch||0}"
+                   oninput="projects[${i}].revMerch=parseFloat(this.value)||0;saveProjects();renderProjects()"/></div>
+          <div class="fld"><label>预估播放量（万次）</label>
+            <input class="si" type="number" value="${p.revViews||0}"
+                   oninput="projects[${i}].revViews=parseFloat(this.value)||0;saveProjects();renderProjects()"/></div>
+          <div class="fld"><label>广告CPM（元/千次）</label>
+            <input class="si" type="number" value="${p.revCpm||0}"
+                   oninput="projects[${i}].revCpm=parseFloat(this.value)||0;saveProjects();renderProjects()"/></div>
+        </div>
+      </div>`:'' ;
+    return `<div class="proj-card ${p.open?'open':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center"
+           onclick="projects[${i}].open=!projects[${i}].open;saveProjects();renderProjects()">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px;font-weight:500">${p.name}</span>
+          <span class="badge b-gray">${p.eps}集 · ${p.days}天</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="badge b-amber">${fmt(c.total)}</span>
+          <span class="badge" style="background:${c.net>=0?'#EAF3DE':'#FCEBEB'};color:${profColor}">
+            ${c.net>=0?'+':''}${fmt(c.net)}</span>
+          <span style="color:#bbb;font-size:12px">${p.open?'▲':'▼'}</span>
+          <button class="delbtn" onclick="event.stopPropagation();
+            if(confirm('删除项目「${p.name}」？')){projects.splice(${i},1);saveProjects();renderProjects();updateHeader();}">×</button>
+        </div>
+      </div>
+      ${expanded}
+    </div>`;
+  }).join('');
+  document.getElementById('proj-list').innerHTML=html||
+    '<div style="padding:20px 0;text-align:center;color:#aaa;font-size:13px">暂无项目，点击上方「新增项目」</div>';
+  updateHeader();
+}
+function addProject(){
+  projects.push({name:'新项目 '+(projects.length+1),eps:20,days:30,scriptCost:0,staffing:[],
+    revPlat:0,revBrand:0,revLic:0,revMerch:0,revViews:0,revCpm:0,open:true});
+  saveProjects();renderProjects();renderPool();
+}
+function saveProjects(){
+  var s=projects.map(p=>Object.assign({},p,{open:false}));
+  saveJSON(SK.proj,s);
+  renderPool();
+}
+
+/* ---- pool ---- */
+function renderPool(){
+  var maxDays=Math.max(...projects.map(p=>p.days),1);
+  var totalCost=projects.reduce((a,p)=>a+calcProjectCost(p).total,0);
+  var totalRev=projects.reduce((a,p)=>a+calcProjectCost(p).rev,0);
+  var net=totalRev-totalCost;
+  var totalHrCost=projects.reduce((a,p)=>a+calcProjectCost(p).hrCost,0);
+
+  document.getElementById('pool-metrics').innerHTML=`
+    <div class="mc"><div class="ml">并行项目</div><div class="mv">${projects.length}</div><div class="ms">个</div></div>
+    <div class="mc"><div class="ml">总人力成本</div>
+      <div class="mv warn">${fmt(totalHrCost)}</div>
+      <div class="ms">全周期</div></div>
+    <div class="mc"><div class="ml">汇总总成本</div><div class="mv bad">${fmt(totalCost)}</div><div class="ms">所有项目</div></div>
+    <div class="mc"><div class="ml">汇总净利润</div>
+      <div class="mv ${net>=0?'ok':'bad'}">${net>=0?'+':''}${fmt(net)}</div>
+      <div class="ms">预估</div></div>`;
+
+  // 新资源池调度逻辑
+  var poolHtml=roles.map(r=>{
+    // Demand = sum of ratios for this role name across all projects' staffing
+    var demand = projects.reduce((sum, p) => {
+        if(p.staffing){
+            var match = p.staffing.find(s => s.roleName === r.name);
+            if(match) return sum + match.ratio;
+        }
+        return sum;
+    }, 0).toFixed(2);
+    var supply = parseFloat(r.count);
+    var ratio = supply > 0 ? demand / supply : (demand > 0 ? 99 : 0);
+    var pct = Math.min(ratio * 100, 100);
+    var over = ratio > 1, tight = ratio > 0.8 && ratio <= 1;
+    var barColor = over ? '#E24B4A' : (tight ? '#BA7517' : '#639922');
+    var cl = over ? 'cap-bad' : (tight ? 'cap-warn' : 'cap-ok');
+    var lbl = '';
+    if (supply === 0 && demand > 0) {
+        lbl = '<span class="cap-bad">无人力配置</span>';
+    } else if (over) {
+        lbl = `<span class="cap-bad">超载 ${(ratio-1)*100|0}% (溢出 ${(parseFloat(demand)-supply).toFixed(1)}人)</span>`;
+    } else if (tight) {
+        lbl = `<span class="cap-warn">紧张 ${(ratio*100).toFixed(0)}%</span>`;
+    } else {
+        lbl = `<span class="cap-ok">充足 ${(ratio*100).toFixed(0)}%</span>`;
+    }
+    return `<div class="pool-row">
+      <div style="min-width:100px;font-size:13px">${r.name}
+        <span style="color:#bbb;font-size:11px">(共${r.count}人)</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#999">
+          <span>需 ${demand} ratio</span><span>供 ${supply} 人</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
+      </div>
+      <div style="min-width:120px;text-align:right;margin-left:10px">${lbl}</div>
+      <div style="min-width:100px;text-align:right;font-size:11px;color:#A32D2D">
+        ${over?`需加 ${(Math.ceil(parseFloat(demand)-supply))} 人`:''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('pool-table').innerHTML=poolHtml||
+    '<div style="font-size:13px;color:#aaa;padding:8px 0">暂无岗位数据，请在全局配置中添加</div>';
+
+  // 分摊表重构
+  if(!projects.length||!roles.length){
+    document.getElementById('pool-split').innerHTML='<div style="font-size:13px;color:#aaa;padding:8px 0">暂无数据</div>';
+    return;
+  }
+  var splitHtml=`<table style="width:100%;table-layout:fixed;font-size:12px">
+    <thead><tr style="border-bottom:1px solid #e8e8e8">
+      <th style="text-align:left;padding:5px 6px;font-weight:400;color:#aaa;width:100px">岗位</th>
+      ${projects.map(p=>`<th style="text-align:right;padding:5px 6px;font-weight:400;color:#aaa">${p.name}</th>`).join('')}
+    </tr></thead><tbody>
+    ${roles.map(r=>{
+      return `<tr style="border-bottom:1px solid #f5f5f5">
+        <td style="padding:5px 6px;color:#888">${r.name}</td>
+        ${projects.map(p=>{
+          var hrs = 0;
+          if(p.staffing){
+             var s = p.staffing.find(x=>x.roleName === r.name);
+             hrs = s ? s.ratio * r.salary * (p.days/30) : 0;
+          }
+          return `<td style="text-align:right;padding:5px 6px">${hrs>0?fmt(hrs):'<span style="color:#ccc">—</span>'}</td>`;
+        }).join('')}
+      </tr>`;
+    }).join('')}
+    <tr style="font-weight:500;border-top:1px solid #e8e8e8">
+      <td style="padding:6px 6px">人力合计</td>
+      ${projects.map(p=>`<td style="text-align:right;padding:6px 6px">${fmt(calcProjectCost(p).hrCost)}</td>`).join('')}
+    </tr></tbody></table>`;
+  document.getElementById('pool-split').innerHTML=splitHtml;
+}
+
+/* ---- curve ---- */
+function drawCurve(){
+  var sel=document.getElementById('curve-sel');
+  sel.innerHTML=projects.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
+  if(!projects.length){return;}
+  var idx=parseInt(sel.value)||0;
+  var p=projects[idx]||projects[0];
+  var c=calcProjectCost(p);
+
+  document.getElementById('cv-total').textContent=fmt(c.total);
+  document.getElementById('cv-perep').textContent=fmt(c.total/Math.max(p.eps,1));
+  document.getElementById('cv-airatio').textContent=c.total>0?(c.aiCost/c.total*100).toFixed(1)+'%':'—';
+  var el=document.getElementById('cv-profit');
+  el.textContent=(c.net>=0?'+':'')+fmt(c.net);
+  el.className='mv '+(c.net>=0?'ok':'bad');
+
+  // 成本构成
+  var globalHrBaseline = roles.reduce((a,r)=>a+r.count*r.salary*(p.days/30), 0);
+  var items=[
+    {l:'AI积分（分镜+图像）',v:c.aiCost,cl:'#185FA5'},
+    {l:'脚本外包',v:c.scriptCost,cl:'#378ADD'},
+    {l:'人力成本',v:c.hrCost,cl:'#BA7517'},
+    {l:'固定成本',v:c.fixCost,cl:'#3B6D11'},
+    {l:'公司人力基准 (参考)',v:globalHrBaseline,cl:'#aaa',isRef:true}
+  ];
+  var totalForPercent = c.total;
+  document.getElementById('cv-breakdown').innerHTML=items.map(it=>{
+    var isRef = it.isRef || false;
+    var pct = isRef ? (totalForPercent>0?(it.v/totalForPercent*100).toFixed(1):0) : (totalForPercent>0?(it.v/totalForPercent*100).toFixed(1):0);
+    var labelDisplay = isRef ? it.l : it.l;
+    return `
+    <div class="trow">
+      <span class="lb">${labelDisplay}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:80px;height:4px;border-radius:2px;background:#eee;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${it.cl};border-radius:2px"></div>
+        </div>
+        <span style="font-size:11px;color:#999;width:36px;text-align:right">${pct}%</span>
+        <span style="font-weight:500;min-width:72px;text-align:right">${fmt(it.v)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 数据生成
+  var maxEp=Math.max(p.eps*2,40);
+  var labels=[],dTot=[],dAi=[],dHr=[],dFix=[], dCompProj=[], dCompBase=[], dCompAI=[];
+  var plat=getActivePlat();
+  var ptsPerEp=gv('ai-rate')*gv('ai-dur') + gv('ai-imgpts')*gv('ai-imgn');
+
+  for(var e=1;e<=maxEp;e++){
+    var pp=Object.assign({},p,{eps:e});
+    var cc=calcProjectCost(pp);
+    labels.push(e);
+    dTot.push(Math.round(cc.total/e));
+    dAi.push(Math.round(cc.aiCost/e));
+    dHr.push(Math.round(cc.hrCost/e));
+    dFix.push(Math.round(cc.fixCost/e));
+
+    // 新图表数据
+    dCompProj.push(cc.hrCost); // 项目人力成本 (固定线，随集数膨胀)
+    dCompBase.push(globalHrBaseline); // 全局基准 (固定值)
+    dCompAI.push((ptsPerEp * e)/plat.rate); // AI算力成本 (线性增长)
+  }
+
+  if(curveInst){curveInst.destroy();}
+  if(compInst){compInst.destroy();}
+  if(pieInst){pieInst.destroy();}
+
+  // 单集成本图
+  curveInst=new Chart(document.getElementById('curveChart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'总/集',data:dTot,borderColor:'#185FA5',backgroundColor:'rgba(55,138,221,0.06)',
+       fill:true,tension:.3,pointRadius:0,hidden:!seriesVis.tot},
+      {label:'AI/集',data:dAi,borderColor:'#3B6D11',fill:false,tension:.3,pointRadius:0,hidden:!seriesVis.ai},
+      {label:'人力/集',data:dHr,borderColor:'#BA7517',borderDash:[5,3],fill:false,tension:.3,pointRadius:0,hidden:!seriesVis.hr},
+      {label:'固定/集',data:dFix,borderColor:'#993556',borderDash:[2,5],fill:false,tension:.3,pointRadius:0,hidden:!seriesVis.fix},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,
+        callbacks:{label:ctx=>`${ctx.dataset.label}: ¥${ctx.parsed.y.toLocaleString()}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:11}},
+           title:{display:true,text:'集数',font:{size:11}}},
+        y:{grid:{color:'rgba(0,0,0,0.05)'},
+           ticks:{font:{size:11},callback:v=>'¥'+v.toLocaleString()}}
+      }
+    }
+  });
+
+  // 新增人力 vs AI 对比图
+  compInst = new Chart(document.getElementById("compChart"), {
+    type: "line",
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: "项目人力成本",
+                data: dCompProj,
+                borderColor: "#BA7517",
+                backgroundColor: "rgba(186, 117, 23, 0.05)",
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0
+            },
+            {
+                label: "全局人力基准 (参考)",
+                data: dCompBase,
+                borderColor: "#666",
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0,
+                pointRadius: 0
+            },
+            {
+                label: "AI算力成本",
+                data: dCompAI,
+                borderColor: "#3B6D11",
+                fill: false,
+                tension: 0.2,
+                pointRadius: 0
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true, position: "top" },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `${ctx.dataset.label}: ¥${ctx.parsed.y.toLocaleString()}`
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { maxTicksLimit: 10, font: { size: 11 } },
+                title: { display: true, text: "集数", font: { size: 11 } }
+            },
+            y: {
+                grid: { color: "rgba(0,0,0,0.05)" },
+                ticks: { font: { size: 11 }, callback: v => "¥" + v.toLocaleString() }
+            }
+        }
+    }
+  });
+
+  // 饼图
+  var pd=[Math.round(c.aiCost),Math.round(c.scriptCost),Math.round(c.hrCost),Math.round(c.fixCost)];
+  var pl=['AI积分','脚本','人力','固定'];
+  var pc=['#185FA5','#378ADD','#BA7517','#3B6D11'];
+  var pt=pd.reduce((a,b)=>a+b,0);
+  pieInst=new Chart(document.getElementById('pieChart'),{
+    type:'doughnut',
+    data:{labels:pl,datasets:[{data:pd,backgroundColor:pc,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${pt>0?(ctx.raw/pt*100).toFixed(1):0}%`}}},
+      cutout:'58%'}
+  });
+  document.getElementById('pie-leg').innerHTML=pl.map((l,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;color:#888">
+      <span style="width:10px;height:10px;border-radius:2px;background:${pc[i]};flex-shrink:0"></span>
+      <span style="flex:1">${l}</span>
+      <span style="font-weight:500;color:#1a1a1a">${pt>0?(pd[i]/pt*100).toFixed(1):0}%</span>
+    </div>`).join('');
+}
+
+function toggleSeries(k,el){
+  seriesVis[k]=!seriesVis[k];
+  el.classList.toggle('on');
+  drawCurve();
+}
+
+function updateHeader(){
+  document.getElementById('hd-projs').textContent='项目 '+projects.length+' 个';
+  var tc=projects.reduce((a,p)=>a+calcProjectCost(p).total,0);
+  document.getElementById('hd-cost').textContent='总成本 '+fmt(tc);
+  var bn=getBottleneck();
+  var hd=document.getElementById('hd-res');
+  hd.textContent=bn?'瓶颈: '+bn:'资源充足';
+  hd.className='badge '+(bn?'b-red':'b-green');
+}
+
+function getBottleneck(){
+  if(!projects.length) return null;
+  var bn=null,mx=0;
+  roles.forEach(r=>{
+    var d=projects.reduce((sum,p)=>{
+        if(p.staffing){
+            var s=p.staffing.find(x=>x.roleName===r.name);
+            if(s) return sum+s.ratio;
+        }
+        return sum;
+    }, 0);
+    var s=r.count;
+    var ratio=s>0?d/s:(d>0?99:0);
+    if(ratio>mx){mx=ratio;if(ratio>1)bn=r.name;}
+  });
+  return bn;
+}
+
+function goTab(t){
+  var ts=['global','projects','pool','curve'];
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',ts[i]===t));
+  document.querySelectorAll('.pg').forEach((el,i)=>el.classList.toggle('active','tab-'+ts[i]==='tab-'+t));
+  if(t==='pool') renderPool();
+  if(t==='curve') drawCurve();
+  if(t==='projects') renderProjects();
+  if(t==='global') renderTemplates();
+}
+
+/* init */
+loadGlobal();
+renderPlatforms();
+renderRoles();
+renderTemplates();
+renderProjects();
+updateHeader();
+</script>
+</body>
+</html>
