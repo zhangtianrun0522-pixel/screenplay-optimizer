@@ -1,0 +1,44 @@
+{
+  "name": "web",
+  "version": "1.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9 <23"
+  },
+  "scripts": {
+    "dev": "node scripts/safe-next-dev.mjs --webpack",
+    "dev:web": "node scripts/safe-next-dev.mjs --webpack",
+    "dev:web:preview": "SCRIPT_AGENT_PREVIEW_PORT=4100 SCRIPT_AGENT_NEXT_DIST_DIR=.next-preview-4100 node scripts/safe-next-dev.mjs --webpack",
+    "dev:web:turbopack": "node scripts/safe-next-dev.mjs",
+    "dev:web:webpack": "node scripts/safe-next-dev.mjs --webpack",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "lint": "eslint",
+    "smoke:extract-stage5": "npx tsx lib/artifact-extract.stage5.smoke.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0",
+    "nanoid": "^5.1.7",
+    "next": "16.2.3",
+    "pdf-parse": "^1.1.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.2.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

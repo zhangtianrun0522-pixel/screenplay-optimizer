@@ -1,0 +1,35 @@
+.DS_Store
+.cursor/
+
+# Next.js / Node (monorepo root + web)
+.next/
+out/
+**/node_modules/
+**/.next/
+**/.next-preview-*/
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+*.bak
+
+# Local app data (user projects; do not publish)
+data/projects/*.json
+data/settings/*.json
+
+# Electron 桌面打包产物与临时资源
+desktop/node_modules/
+desktop/release/
+desktop/resources/
+desktop/.cache/
+
+# Local tool state
+**/supabase/.temp/
+
+# Python Wattpad service
+**/services/wattpad-api/.venv/
